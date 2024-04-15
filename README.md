@@ -33,7 +33,7 @@ It consists of the following contracts
 
 ## Architecture
 
-![Aqua smart contract architecture](https://github-production-user-asset-6210df.s3.amazonaws.com/124560975/295851340-90291e8b-c08b-4688-b2b0-ed249ca6b848.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20240412%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240412T040241Z&X-Amz-Expires=300&X-Amz-Signature=789e58b4829d3d9bc72878d844f30ac82ae717eb7232a754a13652e01e400a29&X-Amz-SignedHeaders=host&actor_id=23033847&key_id=0&repo_id=624225272)
+![295851340-90291e8b-c08b-4688-b2b0-ed249ca6b848](https://github.com/Native-org/native-smart-contracts/assets/23033847/00b62051-2df9-4f73-a26b-da453875c44d)
 
 ## Workflow
 
