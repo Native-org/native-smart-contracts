@@ -44,13 +44,12 @@ This section lists files that are in scope for the metrics report.
 
 ### <span id=t-source-Units-in-Scope>Source Units in Scope</span>
 
-Source Units Analyzed: **`59`**<br>
-Source Units in Scope: **`59`** (**100%**)
+Source Units Analyzed: **`58`**<br>
+Source Units in Scope: **`58`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
 | 📝 | src/Blacklistable.sol | 1 | **** | 73 | 73 | 34 | 29 | 24 | **** |
-| 📝 | src/ConstantSumPricer.sol | 1 | **** | 20 | 15 | 11 | 1 | 8 | **** |
 | 🎨 | src/ExternalSwapRouterUpgradeable.sol | 1 | **** | 133 | 119 | 88 | 8 | 49 | **** |
 | 📝 | src/NativePool.sol | 1 | **** | 483 | 455 | 384 | 10 | 232 | **<abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
 | 📝🔍 | src/NativePoolFactory.sol | 1 | 1 | 218 | 197 | 146 | 18 | 176 | **<abbr title='create/create2'>🌀</abbr><abbr title='doppelganger(IPool)'>🔆</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
@@ -108,7 +107,7 @@ Source Units in Scope: **`59`** (**100%**)
 | 🎨 | src/storage/NativePoolStorage.sol | 1 | **** | 27 | 27 | 21 | 2 | 18 | **** |
 | 🎨 | src/storage/NativeRfqPoolStorage.sol | 1 | **** | 16 | 16 | 14 | 1 | 12 | **** |
 | 🎨 | src/storage/NativeRouterStorage.sol | 1 | **** | 14 | 14 | 10 | 3 | 8 | **** |
-| 📝📚🔍🎨 | **Totals** | **57** | **21** | **7935**  | **7151** | **4257** | **1947** | **3281** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='Initiates ETH Value Transfer'>📤</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr><abbr title='doppelganger'>🔆</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
+| 📝📚🔍🎨 | **Totals** | **56** | **21** | **7915**  | **7136** | **4246** | **1946** | **3273** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='Initiates ETH Value Transfer'>📤</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr><abbr title='doppelganger'>🔆</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -127,16 +126,15 @@ Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
 
 
 ##### <span id=t-deployable-contracts>Deployable Logic Contracts</span>
-Total: 14
-* 📝 `ConstantSumPricer`
+Total: 13
 * 📝 `NativePool`
 * 📝 `NativePoolFactory`
 * 📝 `NativeRfqPool`
 * 📝 `NativeRouter`
+* 📝 `Registry`
 * <a onclick="toggleVisibility('deployables', this)">[➕]</a>
 <div id="deployables" style="display:none">
 <ul>
-<li> 📝 <code>Registry</code></li>
 <li> 📝 <code>AquaLpToken</code></li>
 <li> 📝 <code>AquaVault</code></li>
 <li> 📝 <code>AquaVaultSignatureCheck</code></li>
@@ -226,7 +224,7 @@ The analysis finished with **`0`** errors and **`0`** duplicate files.
 
 | 📝Contracts   | 📚Libraries | 🔍Interfaces | 🎨Abstract |
 | ------------- | ----------- | ------------ | ---------- |
-| 27 | 7  | 21  | 23 |
+| 26 | 7  | 21  | 23 |
 
 #### <span id=t-exposed-functions>Exposed Functions</span>
 
@@ -234,17 +232,17 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | 🌐Public   | 💰Payable |
 | ---------- | --------- |
-| 318 | 29  | 
+| 317 | 29  | 
 
 | External   | Internal | Private | Pure | View |
 | ---------- | -------- | ------- | ---- | ---- |
-| 249 | 403  | 10 | 50 | 98 |
+| 249 | 403  | 10 | 49 | 98 |
 
 #### <span id=t-statevariables>StateVariables</span>
 
 | Total      | 🌐Public  |
 | ---------- | --------- |
-| 184  | 134 |
+| 183  | 134 |
 
 #### <span id=t-capabilities>Capabilities</span>
 
@@ -341,7 +339,6 @@ This section lists functions that are explicitly declared public or payable. Ple
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
 | src/Blacklistable.sol | [object Promise] |
-| src/ConstantSumPricer.sol | [object Promise] |
 | src/ExternalSwapRouterUpgradeable.sol | [object Promise] |
 | src/NativePool.sol | [object Promise] |
 | src/NativePoolFactory.sol | [object Promise] |
@@ -413,9 +410,6 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | blacklist | External ❗️ | 🛑  | onlyBlacklister |
 | └ | unBlacklist | External ❗️ | 🛑  | onlyBlacklister |
 | └ | updateBlacklister | External ❗️ | 🛑  | onlyOwner |
-||||||
-| **ConstantSumPricer** | Implementation | IPricer |||
-| └ | getAmountOut | Public ❗️ |   |NO❗️ |
 ||||||
 | **ExternalSwapRouterUpgradeable** | Implementation | Initializable |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
