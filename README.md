@@ -33,7 +33,7 @@ It consists of the following contracts
 
 ## Architecture
 
-![295851340-90291e8b-c08b-4688-b2b0-ed249ca6b848](https://github.com/Native-org/native-smart-contracts/assets/23033847/00b62051-2df9-4f73-a26b-da453875c44d)
+![image](https://github.com/Native-org/native-smart-contracts/assets/23033847/7a095795-2b37-4b9d-b82b-f63acee49dc6)
 
 ## Workflow
 
