@@ -3,46 +3,59 @@ pragma solidity 0.8.17;
 
 import {PullModelPriceOracle} from "./PullModelPriceOracle.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {CToken} from "../Compound/CToken.sol";
 import {AquaLpToken} from "./AquaLpToken.sol";
-import {IPyth} from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
-import {PythStructs} from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
-import {IWETH9} from "../interfaces/IWETH9.sol";
+import {PrimaryProdDataServiceConsumerBase} from "@redstone-finance/evm-connector/contracts/data-services/PrimaryProdDataServiceConsumerBase.sol";
 
-contract PythPriceOracle is PullModelPriceOracle, Ownable {
-    using SafeCast for int64;
-
+contract RedStonePriceOracle is PullModelPriceOracle, Ownable, PrimaryProdDataServiceConsumerBase {
     uint8 private constant EXPECTED_DECIMALS = 18;
+    uint8 private constant REDSTONE_PRICE_DECIMALS = 8;
+    uint8 private constant DECIMAL_DELTA = EXPECTED_DECIMALS - REDSTONE_PRICE_DECIMALS;
 
-    IPyth public immutable pyth;
-    address immutable weth;
     uint256 public priceExpiryTime = 60 seconds;
     mapping(CToken => bytes32) public priceIds;
+    mapping(bytes32 => Price) public prices;
 
-    error PriceExpoError();
+    struct Price {
+        uint256 price;
+        uint256 lastUpdatedTimestamp;
+    }
+
+    error StalePrice(address cToken);
+    error FailToExtractPrices(bytes errorData);
+    error UnexpectedMsgValue();
     error InputArrayLengthMismatch();
+    error InvalidPayloadLength();
 
-    constructor(address pythContract, address _weth) {
-        pyth = IPyth(pythContract);
-        weth = _weth;
+    function extractPrice(bytes32[] calldata feedId) public view returns (uint256[] memory extractedPrices) {
+        extractedPrices = new uint256[](feedId.length);
+        for (uint256 i = 0; i < feedId.length; i++) {
+            extractedPrices[i] = getOracleNumericValueFromTxMsg(feedId[i]);
+        }
     }
 
     function updatePrices(
         address[] calldata,
-        bytes32[] calldata,
-        bytes[] calldata priceUpdateData,
-        address refundee
+        bytes32[] calldata _priceIds,
+        bytes[] calldata redstonePayloads, // only take the first one
+        address
     ) external payable override {
-        // Update the prices to the latest available values and pay the required fee for it. The `priceUpdateData` data
-        // should be retrieved from our off-chain Price Service API using the `pyth-evm-js` package.
-        // See section "How Pyth Works on EVM Chains" below for more information.
-        uint256 fee = pyth.getUpdateFee(priceUpdateData);
-        pyth.updatePriceFeeds{value: fee}(priceUpdateData);
-
-        uint256 balance = address(this).balance;
-        if (balance != 0) {
-            _transferETHAndWrapIfFailWithGasLimit(refundee, balance, 2300);
+        if (msg.value != 0) {
+            revert UnexpectedMsgValue();
+        }
+        if (redstonePayloads.length != 1) {
+            revert InvalidPayloadLength();
+        }
+        bytes memory priceIdsCalldata = abi.encodeWithSelector(this.extractPrice.selector, _priceIds);
+        (bool success, bytes memory result) = address(this).call(abi.encodePacked(priceIdsCalldata, redstonePayloads[0]));
+        if (!success) {
+            revert FailToExtractPrices(result);
+        }
+        
+        uint256[] memory extractedPrices = abi.decode(result, (uint256[]));
+        for (uint256 i = 0; i < extractedPrices.length; i++) {
+            prices[_priceIds[i]].price = extractedPrices[i];
+            prices[_priceIds[i]].lastUpdatedTimestamp = block.timestamp;
         }
     }
 
@@ -61,58 +74,27 @@ contract PythPriceOracle is PullModelPriceOracle, Ownable {
     }
 
     function getUnderlyingPrice(CToken cToken) external view override returns (uint256) {
-        PythStructs.Price memory price = pyth.getPriceNoOlderThan(priceIds[cToken], priceExpiryTime);
+        Price memory price = prices[priceIds[cToken]];
 
-        if (price.expo > 0 || uint32(-price.expo) > type(uint8).max) {
-            revert PriceExpoError();
+        if (block.timestamp - price.lastUpdatedTimestamp > priceExpiryTime) {
+            revert StalePrice(address(cToken));
         }
 
-        uint8 priceDecimals = uint8(uint32(-price.expo));
-        uint8 decimalsDelta = EXPECTED_DECIMALS - priceDecimals;
-        uint256 pythPrice = price.price.toUint256() * 10 ** decimalsDelta;
+        uint256 redstonePrice = price.price * 10 ** DECIMAL_DELTA;
 
         // This oracle is designed based on the assumption that it has an underlying token (not native token), and the token has a decimals public variable
-        uint8 tokenDecimals = IERC20(AquaLpToken(address(cToken)).underlying()).decimals();
+        uint8 tokenDecimals = IERC20Decimals(AquaLpToken(address(cToken)).underlying()).decimals();
 
         if (tokenDecimals < EXPECTED_DECIMALS) {
-            return pythPrice * (10 ** (EXPECTED_DECIMALS - tokenDecimals));
+            return redstonePrice * (10 ** (EXPECTED_DECIMALS - tokenDecimals));
         } else if (tokenDecimals > EXPECTED_DECIMALS) {
-            return pythPrice / (10 ** (tokenDecimals - EXPECTED_DECIMALS));
+            return redstonePrice / (10 ** (tokenDecimals - EXPECTED_DECIMALS));
         }
 
-        return pythPrice;
-    }
-
-    function withdrawStuckEth() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
-    }
-
-    // ref: https://github.com/LooksRare/contracts-libs/blob/master/contracts/lowLevelCallers/LowLevelWETH.sol
-    /**
-     * @notice It transfers ETH to a recipient with a specified gas limit.
-     *         If the original transfers fails, it wraps to WETH and transfers the WETH to recipient.
-     * @param _to Recipient address
-     * @param _amount Amount to transfer
-     * @param _gasLimit Gas limit to perform the ETH transfer
-     */
-    function _transferETHAndWrapIfFailWithGasLimit(
-        address _to,
-        uint256 _amount,
-        uint256 _gasLimit
-    ) internal {
-        bool status;
-
-        assembly {
-            status := call(_gasLimit, _to, _amount, 0, 0, 0, 0)
-        }
-
-        if (!status) {
-            IWETH9(weth).deposit{value: _amount}();
-            IWETH9(weth).transfer(_to, _amount);
-        }
+        return redstonePrice;
     }
 }
 
-interface IERC20 {
+interface IERC20Decimals {
     function decimals() external view returns (uint8);
 }

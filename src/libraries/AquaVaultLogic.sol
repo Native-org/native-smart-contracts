@@ -63,6 +63,7 @@ library AquaVaultLogic {
         mapping(address => AquaLpToken) storage lpTokens,
         mapping(address => mapping(address => int256)) storage positions
     ) external {
+        // intentionally not accruing interest to save gas for frequent swaps activities
         lpTokens[sellerToken].updateNetBorrow(-amountIn);
         lpTokens[buyerToken].updateNetBorrow(amountOut);
         positions[trader][sellerToken] += amountIn;
@@ -126,7 +127,7 @@ library AquaVaultLogic {
         }
         for (uint i = 0; i < lpTokenValueUpdate.length; ) {
             address token = lpTokenValueUpdate[i].tokenAddress;
-            uint lpExchangeRateBeforeUpdate = lpTokens[token].exchangeRateStored();
+            uint lpExchangeRateBeforeUpdate = lpTokens[token].exchangeRateCurrent();
 
             lpTokens[token].updateNetBorrow(lpTokenValueUpdate[i].netBorrowChange.toInt256());
             lpTokens[token].updateReserve(lpTokenValueUpdate[i].reserveChange);
@@ -325,7 +326,7 @@ library AquaVaultLogic {
         for (uint256 i; i < claimCollaterals.length; ) {
             address token = claimCollaterals[i].tokenAddress;
             uint256 amount = claimCollaterals[i].amount;
-            IERC20(token).transfer(params.recipient, amount);
+            IERC20(token).safeTransfer(params.recipient, amount);
             unchecked {
                 i++;
             }
@@ -351,6 +352,7 @@ library AquaVaultLogic {
                 revert InvalidPositionUpdateAmount();
             }
 
+            lpTokens[token].accrueInterest();
             lpTokens[token].updateNetBorrow(-amount);
             positions[trader][token] = newPositionValue;
 

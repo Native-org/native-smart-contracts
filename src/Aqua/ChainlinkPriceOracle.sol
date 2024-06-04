@@ -30,7 +30,8 @@ contract ChainlinkPriceOracle is PriceOracle {
 
     error CallerNotOwner();
     error OraclePriceError();
-    address public immutable owner;
+
+    address public owner;
     uint8 private constant EXPECTED_DECIMALS = 18;
 
     constructor() {
@@ -41,10 +42,10 @@ contract ChainlinkPriceOracle is PriceOracle {
 
     /// @notice Get the underlying price of a cToken asset
     /// @param cToken The cToken to get the underlying price of
-    function getUnderlyingPrice(CToken cToken) external view override returns (uint) {
+    function getUnderlyingPrice(CToken cToken) external view override returns (uint256) {
         ChainlinkAggregator feed = feeds[cToken];
 
-        (, int256 price, , uint256 updatedAt, ) = feed.latestRoundData();
+        (, int256 price,, uint256 updatedAt,) = feed.latestRoundData();
         if (price <= 0 || updatedAt == 0) {
             revert OraclePriceError();
         }
@@ -73,5 +74,10 @@ contract ChainlinkPriceOracle is PriceOracle {
         }
         isTokenOracleSupported[cToken] = true;
         feeds[cToken] = feed;
+    }
+
+    function setOwner(address newOwner) external {
+        if (msg.sender != owner) revert CallerNotOwner();
+        owner = newOwner;
     }
 }

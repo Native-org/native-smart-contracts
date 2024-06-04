@@ -117,7 +117,7 @@ contract TokenErrorReporter {
 
     error AddReservesFactorFreshCheck(uint256 actualAddAmount);
 
-    error ReduceReservesAdminCheck();
+    error ReduceReservesWithdrawerCheck();
     error ReduceReservesFreshCheck();
     error ReduceReservesCashNotAvailable();
     error ReduceReservesCashValidation();

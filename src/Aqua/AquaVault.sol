@@ -107,7 +107,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
 
     /// @notice Called by admin to set new admin
     /// @param newAdmin The address of the new admin
-    function setPendingAdmin(address newAdmin) external ensureNonZeroAddress(newAdmin) {
+    function setPendingAdmin(address newAdmin) external onlyAdmin ensureNonZeroAddress(newAdmin) {
         pendingAdmin = newAdmin;
     }
 
@@ -135,6 +135,12 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     /// @param tokens The array of token and amount to approve
     function setAllowance(TokenAmountUint[] calldata tokens) external onlyAdmin {
         AquaVaultLogic.setAllowance(tokens, nativePool);
+    }
+
+    /// @notice Called by admin to set the LP token reserve withdrawer
+    /// @param _lpTokenReserveWithdrawer The address of the new LP token reserve withdrawer
+    function setLpTokenReserveWithdrawer(address payable _lpTokenReserveWithdrawer) external onlyAdmin {
+        lpTokenReserveWithdrawer = _lpTokenReserveWithdrawer;
     }
 
     /// @notice Called by admin to whitelist or blacklist a trader

@@ -46,6 +46,9 @@ abstract contract AquaVaultStorage {
     /// @notice epoch update timestamp
     uint256 public lastEpochUpdateTimestamp;
 
+    /// @notice address to wthidraw the LP token protocol fee
+    address payable public lpTokenReserveWithdrawer;
+
     /// @notice storage resrved for future upgrades
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 }

@@ -17,15 +17,20 @@ contract JumpRateModelV2 is InterestRateModel, BaseJumpRateModelV2 {
      * @param reserves The amount of reserves in the market
      * @return The borrow rate percentage per block as a mantissa (scaled by 1e18)
      */
-    function getBorrowRate(uint cash, uint borrows, uint reserves) external view override returns (uint) {
+    function getBorrowRate(uint256 cash, uint256 borrows, uint256 reserves) external view override returns (uint256) {
         return getBorrowRateInternal(cash, borrows, reserves);
     }
 
     constructor(
-        uint baseRatePerYear,
-        uint multiplierPerYear,
-        uint jumpMultiplierPerYear,
-        uint kink_,
+        uint256 baseRatePerYear,
+        uint256 multiplierPerYear,
+        uint256 jumpMultiplierPerYear,
+        uint256 kink_,
         address owner_
     ) BaseJumpRateModelV2(baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink_, owner_) {}
+
+    function setOwner(address newOwner) external {
+        require(msg.sender == owner, "only the owner may call this function.");
+        owner = newOwner;
+    }
 }

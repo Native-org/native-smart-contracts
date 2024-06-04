@@ -12,5 +12,5 @@ abstract contract NativePoolFactoryStorage {
     mapping(address => bool) public rfqPools;
     mapping(address => address[]) public treasuryToPools;
 
-    uint256[98] private __gap;
+    uint256[97] private __gap;
 }

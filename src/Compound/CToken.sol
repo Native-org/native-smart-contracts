@@ -923,46 +923,7 @@ abstract contract CToken is CTokenInterface, ExponentialNoError, TokenErrorRepor
      * @param reduceAmount Amount of reduction to reserves
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _reduceReservesFresh(uint reduceAmount) internal returns (uint) {
-        // totalReserves - reduceAmount
-        uint totalReservesNew;
-
-        // Check caller is admin
-        if (msg.sender != admin) {
-            revert ReduceReservesAdminCheck();
-        }
-
-        // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockTimestamp != getBlockTimestamp()) {
-            revert ReduceReservesFreshCheck();
-        }
-
-        // Fail gracefully if protocol has insufficient underlying cash
-        if (getCashPrior() < reduceAmount) {
-            revert ReduceReservesCashNotAvailable();
-        }
-
-        // Check reduceAmount ≤ reserves[n] (totalReserves)
-        if (reduceAmount > totalReserves) {
-            revert ReduceReservesCashValidation();
-        }
-
-        /////////////////////////
-        // EFFECTS & INTERACTIONS
-        // (No safe failures beyond this point)
-
-        totalReservesNew = totalReserves - reduceAmount;
-
-        // Store reserves[n+1] = reserves[n] - reduceAmount
-        totalReserves = totalReservesNew;
-
-        // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-        doTransferOut(admin, reduceAmount);
-
-        emit ReservesReduced(admin, reduceAmount, totalReservesNew);
-
-        return NO_ERROR;
-    }
+    function _reduceReservesFresh(uint reduceAmount) internal virtual returns (uint) {}
 
     /**
      * @notice accrues interest and updates the interest rate model using _setInterestRateModelFresh

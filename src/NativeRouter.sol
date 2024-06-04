@@ -409,10 +409,6 @@ contract NativeRouter is
         }
     }
 
-    function unwrapWETH9(uint256 amountMinimum) external payable nonReentrant {
-        unwrapWETH9(amountMinimum, msg.sender);
-    }
-
     function tradeRFQT(NativeRfqPool.RFQTQuote memory quote) external payable override {
         _validateRFQTQuote(quote);
         address payee = quote.externalSwapCalldata.length > 0
@@ -525,5 +521,5 @@ contract NativeRouter is
 
         address recoveredSigner = ECDSAUpgradeable.recover(digest, quote.widgetFeeSignature);
         return widgetFeeSigner == recoveredSigner;
-    }
+    }    
 }

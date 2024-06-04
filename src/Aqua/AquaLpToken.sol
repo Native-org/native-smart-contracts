@@ -372,4 +372,58 @@ contract AquaLpToken is CErc20, UUPSUpgradeable, AquaLpTokenStorage {
         liquidateBorrowInternal(borrower, repayAmount, CTokenInterface(cTokenCollateral));
         return NO_ERROR;
     }
+
+    /**
+     * @notice Overriding the Compound's _reduceReservesFresh function open another role to withdraw reserves
+     * @dev Requires fresh interest accrual
+     * @param reduceAmount Amount of reduction to reserves
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function _reduceReservesFresh(uint reduceAmount) internal override returns (uint) {
+        // totalReserves - reduceAmount
+        uint totalReservesNew;
+
+        address payable withdrawer = AquaVault(aquaVault).lpTokenReserveWithdrawer();
+
+        // Check caller is withdrawer or admin
+        if (msg.sender != withdrawer && msg.sender != admin) {
+            revert ReduceReservesWithdrawerCheck();
+        }
+
+        // We fail gracefully unless market's block number equals current block number
+        if (accrualBlockTimestamp != getBlockTimestamp()) {
+            revert ReduceReservesFreshCheck();
+        }
+
+        // Fail gracefully if protocol has insufficient underlying cash
+        if (getCashPrior() < reduceAmount) {
+            revert ReduceReservesCashNotAvailable();
+        }
+
+        // Check reduceAmount ≤ reserves[n] (totalReserves)
+        if (reduceAmount > totalReserves) {
+            revert ReduceReservesCashValidation();
+        }
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        totalReservesNew = totalReserves - reduceAmount;
+
+        // Store reserves[n+1] = reserves[n] - reduceAmount
+        totalReserves = totalReservesNew;
+
+        // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
+        doTransferOut(withdrawer, reduceAmount);
+
+        emit ReservesReduced(withdrawer, reduceAmount, totalReservesNew);
+
+        return NO_ERROR;
+    }
+
+    function withdrawAllReserve() external nonReentrant returns (uint) {
+        accrueInterest();
+        return _reduceReservesFresh(totalReserves);
+    }
 }
