@@ -142,12 +142,10 @@ contract NativeRfqPool is
             quote.signer
         );
 
-        _transferFromTreasury(originalBuyerToken, quote.recipient, buyerTokenAmount);
-
         if (enableTreasuryCallback) {
             if (
-                quote.effectiveSellerTokenAmount > uint256(type(int256).max) ||
-                buyerTokenAmount > uint256(type(int256).max)
+                quote.effectiveSellerTokenAmount > uint256(type(int256).max)
+                    || buyerTokenAmount > uint256(type(int256).max)
             ) {
                 revert Overflow();
             }
@@ -155,11 +153,12 @@ contract NativeRfqPool is
             INativeTreasuryV2(treasury).nativeTreasuryCallback(
                 quote.signer,
                 quote.sellerToken,
-                int(quote.effectiveSellerTokenAmount),
+                int256(quote.effectiveSellerTokenAmount),
                 quote.buyerToken,
-                int(buyerTokenAmount)
+                int256(buyerTokenAmount)
             );
         }
+        _transferFromTreasury(originalBuyerToken, quote.recipient, buyerTokenAmount);
     }
 
     function updateSigner(address signer, bool value) external onlyOwner {
@@ -220,7 +219,6 @@ contract NativeRfqPool is
                 )
             )
         );
-
         address recoveredSigner = ECDSAUpgradeable.recover(digest, quote.signature);
         return quote.signer == recoveredSigner;
     }
