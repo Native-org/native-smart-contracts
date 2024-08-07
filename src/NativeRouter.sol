@@ -363,7 +363,7 @@ contract NativeRouter is
         bytes32 hash = keccak256(
             abi.encode(
                 EXACT_INPUT_SIGNATURE_HASH,
-                keccak256(inputParams.orders),
+                keccak256(abi.encode(inputParams.orders, inputParams.fallbackSwapDataArray)),
                 inputParams.recipient,
                 inputParams.widgetFee.signer,
                 inputParams.widgetFee.feeRecipient,
@@ -409,11 +409,10 @@ contract NativeRouter is
         }
     }
 
-    function tradeRFQT(NativeRfqPool.RFQTQuote memory quote) external payable override {
+    function tradeRFQT(NativeRfqPool.RFQTQuote memory quote) external payable override nonReentrant {
         _validateRFQTQuote(quote);
-        address payee = quote.externalSwapCalldata.length > 0
-            ? address(this)
-            : NativeRfqPool(payable(quote.pool)).treasury();
+        bool isRfqPool = INativePoolFactory(factory).isRfqPool(quote.pool);
+        address payee = isRfqPool ? NativeRfqPool(payable(quote.pool)).treasury() : address(this); // address(this) is used for externalSwap
         if (msg.value > 0 && !quote.multiHop) {
             if (quote.sellerToken != address(0)) {
                 revert UnexpectedMsgValue();
@@ -443,7 +442,7 @@ contract NativeRouter is
             }
         }
 
-        if (INativePoolFactory(factory).isRfqPool(quote.pool)) {
+        if (isRfqPool) {
             NativeRfqPool(payable(quote.pool)).tradeRFQT(quote);
         } else if (externalRouterWhitelist[quote.pool]) {
             Orders.Order memory order = Orders.Order({
@@ -503,7 +502,9 @@ contract NativeRouter is
                 quote.deadlineTimestamp,
                 quote.nonce,
                 quote.multiHop,
-                quote.signature
+                quote.signature,
+                quote.externalSwapCalldata,
+                msg.sender
             )
         );
 
