@@ -23,9 +23,9 @@ Native is an infratrusture that supports different kinds of pricing and liquidit
 * `NativePoolFactory.sol`: Deploy the new NativePool with the configurations using `createNewPool`
 * `NativePool.sol`: Define the pairs it supports and pricing model it uses. `swap` is called by `NativeRouter`. Treasury (EOA wallet or smart contract) will need to give allowance to this contract to support the swap.
 
-# Aqua
+# Native Credit Margin Engine (CME)
 
-Aqua is a liquidity providing system for RFQ providers. It is built on top of the Compound model and existing Native RFQ system.
+CME is a liquidity providing system for RFQ providers. It is built on top of the Compound model and existing Native RFQ system.
 It consists of the following contracts
 
 1. `AquaVault` contract holding user assets, serving as the treasury for a `NativePool` instance. It inherits `Comptroller` contract from Compound.
@@ -43,13 +43,13 @@ It consists of the following contracts
 2. Liquidity providers interact with LP token contracts to mint, redeem, borrow and repay. The only difference here is that the underlying asset does not lie in LP token contracts, but in `AquaVault`
 3. The interest accrual mechanism for liquidity provider operations are exactly identical as Compound.
 4. When there's an unhealthy borrowing positions, liquidate function in `AquaVault` is open to anyone to repay the debt and claim the collateral.
-5. Special Note: Besides major tokens, Aqua powers altcoin trading. For major tokens with reliable oracle prices, the LP token is exactly like Compound with full functionalities. For altcoins, liquidity providers can deposit asset and mint the LP token, the asset could be used by RFQ providers to fill the swap and LP can earn fee. But liquidity provider cannot borrow altcoins, and LP token of altcoins cannot serve as collateral to borrow other tokens.
+5. Special Note: Besides major tokens, CME powers altcoin trading. For major tokens with reliable oracle prices, the LP token is exactly like Compound with full functionalities. For altcoins, liquidity providers can deposit asset and mint the LP token, the asset could be used by RFQ providers to fill the swap and LP can earn fee. But liquidity provider cannot borrow altcoins, and LP token of altcoins cannot serve as collateral to borrow other tokens.
 
 ### RFQ providers: trade
 
 1. The RFQ provider's address would be added to the `NativePool` as a valid signer for RFQ.
 2. When a swapper send swap request to Native off-chain API, Native checks with the RFQ providers for their quote and if they want to fill the order with Aqua liquidity. If so, they return the quote and signature. The signature would be verified in `NativePool`.
-3. Native off-chain system verifies the quote and generate the signature for approving borrowing from Aqua. The signature would be verified in `AquaVault`.
+3. Native off-chain system verifies the quote and generate the signature for approving borrowing from CME. The signature would be verified in `AquaVault`.
 4. Native API returns the quote and the 2 signatures (1 from RFQ provider, 1 from Native) to the swapper. And swapper calls `NativeRouter` to execute the trade.
 5. `NativeRouter` process the calldata and calls `NativePool` for swapping. `NativePool` will verify the signature of the RFQ provider, and transfer the tokens from `AquaVault` to swapper, also send callback to `NativeRouter` to transfer tokens from swapper to `AquaVault`.
 6. In the end, `NativePool` sends a callback to `AquaVault` to account the position change for the RFQ provider. Tokens transfer away from `AquaVault` to swapper would be short position and tokens transferred into `AquaVault` would be long position. All the live positions for the RFQ provider are recorded on-chain.
