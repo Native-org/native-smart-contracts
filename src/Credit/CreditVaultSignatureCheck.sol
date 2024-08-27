@@ -2,13 +2,13 @@
 pragma solidity 0.8.17;
 
 import {EIP712, ECDSA} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import {IAquaVault} from "../interfaces/IAquaVault.sol";
+import {ICreditVault} from "../interfaces/ICreditVault.sol";
 
-/// @title A contract for verifying signatures for AquaVault
+/// @title A contract for verifying signatures for CreditVault
 /// @author Native
-/// @dev Separate this contract from AquaVault to reduce contract size. It initializes and stores the EIP712 params.
+/// @dev Separate this contract from CreditVault to reduce contract size. It initializes and stores the EIP712 params.
 ///      Verifies signatures for settlement, collateral removal and liquidation requests.
-contract AquaVaultSignatureCheck is EIP712 {
+contract CreditVaultSignatureCheck is EIP712 {
     /// @notice mapping to keep track of used nonces to prevent replay attacks
     /// @dev nonce => used or not.
     ///      The nonce does not follow an incremental pattern so the order does not need to be executed in order.
@@ -55,9 +55,9 @@ contract AquaVaultSignatureCheck is EIP712 {
     /// @notice Verifies the signature for a settlement request
     /// @param request The settlement request containing long and short position updates
     /// @param signature The signature
-    /// @param signer The signer (passed by AquaVault)
+    /// @param signer The signer (passed by CreditVault)
     function verifySettleSignature(
-        IAquaVault.SettlementRequest calldata request,
+        ICreditVault.SettlementRequest calldata request,
         bytes calldata signature,
         address signer
     ) external onlyAquaVault {
@@ -88,9 +88,9 @@ contract AquaVaultSignatureCheck is EIP712 {
     /// @notice Verifies the signature for a collateral removal request
     /// @param request The collateral removal request containing the tokens to be removed
     /// @param signature The signature
-    /// @param signer The signer (passed by AquaVault)
+    /// @param signer The signer (passed by CreditVault)
     function verifyRemoveCollateralSignature(
-        IAquaVault.RemoveCollateralRequest calldata request,
+        ICreditVault.RemoveCollateralRequest calldata request,
         bytes calldata signature,
         address signer
     ) external onlyAquaVault {
@@ -121,9 +121,9 @@ contract AquaVaultSignatureCheck is EIP712 {
     /// @notice Verifies the signature for a liquidation request
     /// @param request The liquidation request containing the position updates and the tokens to be claimed
     /// @param signature The signature
-    /// @param signer The signer (passed by AquaVault)
+    /// @param signer The signer (passed by CreditVault)
     function verifyLiquidationSignature(
-        IAquaVault.LiquidationRequest calldata request,
+        ICreditVault.LiquidationRequest calldata request,
         bytes calldata signature,
         address signer
     ) external onlyAquaVault {
