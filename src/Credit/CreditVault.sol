@@ -3,20 +3,20 @@ pragma solidity 0.8.17;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {INativeTreasuryV2} from "../interfaces/INativeTreasury.sol";
-import {IAquaVault} from "../interfaces/IAquaVault.sol";
-import {AquaLpToken} from "./AquaLpToken.sol";
+import {ICreditVault} from "../interfaces/ICreditVault.sol";
+import {CreditLpToken} from "./CreditLpToken.sol";
 import {Comptroller} from "../Compound/Comptroller.sol";
-import {AquaVaultStorage} from "../storage/AquaVaultStorage.sol";
-import {AquaVaultSignatureCheck} from "./AquaVaultSignatureCheck.sol";
-import {AquaVaultLogic} from "../libraries/AquaVaultLogic.sol";
+import {CreditVaultStorage} from "../storage/CreditVaultStorage.sol";
+import {CreditVaultSignatureCheck} from "./CreditVaultSignatureCheck.sol";
+import {CreditVaultLogic} from "../libraries/CreditVaultLogic.sol";
 
 /// @title Holds all the assets and positions of the RFQ providers, and provides allowance to NativeRfqPool to power the swap
 /// @author Native
-/// @notice AquaVault is called by NativeRfqPool to update positions, by traders to settle and liquidate, by admin to support new markets and update positions
+/// @notice CreditVault is called by NativeRfqPool to update positions, by traders to settle and liquidate, by admin to support new markets and update positions
 /// @notice The "traders" here are referring to the RFQ providers, not the swappers
-/// @dev AquaVaultSignatureCheck(contract) and AquaVaultLogic(library) are extracted to different contract addresses to reduce the contract size of AquaVault
-/// @dev AquaVault inherits from Comptroller. The difference from Compound is that AquaVault is the address that holds the asset and gives allowance to NativeRfqPool to power the swap
-contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVault, AquaVaultStorage {
+/// @dev CreditVaultSignatureCheck(contract) and CreditVaultLogic(library) are extracted to different contract addresses to reduce the contract size of CreditVault
+/// @dev CreditVault inherits from Comptroller. The difference from Compound is that CreditVault is the address that holds the asset and gives allowance to NativeRfqPool to power the swap
+contract CreditVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, ICreditVault, CreditVaultStorage {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -28,7 +28,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal view override onlyAdmin {
-        AquaVault(newImplementation).isComptroller();
+        CreditVault(newImplementation).isComptroller();
     }
 
     function initialize(
@@ -36,7 +36,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     ) public initializer ensureNonZeroAddress(aquaVaultSignatureCheck_) {
         __Comptroller_init(msg.sender);
         __UUPSUpgradeable_init();
-        aquaVaultSignatureCheck = AquaVaultSignatureCheck(aquaVaultSignatureCheck_);
+        aquaVaultSignatureCheck = CreditVaultSignatureCheck(aquaVaultSignatureCheck_);
         lastEpochUpdateTimestamp = block.timestamp;
         maxAssets = 10;
     }
@@ -89,18 +89,18 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
             revert CallerNotNativePool();
         }
 
-        AquaVaultLogic.swapCallback(trader, sellerToken, amountIn, buyerToken, amountOut, lpTokens, positions);
+        CreditVaultLogic.swapCallback(trader, sellerToken, amountIn, buyerToken, amountOut, lpTokens, positions);
     }
 
-    /// @notice Called by AquaLpToken to transfer the underlying asset to recipient
-    /// @dev Different from Compound, Aqua needs this function because the underlying asset does not stay in LP token contract, but here in AquaVault
+    /// @notice Called by CreditLpToken to transfer the underlying asset to recipient
+    /// @dev Different from Compound, Native Credit needs this function because the underlying asset does not stay in LP token contract, but here in CreditVault
     /// @param to The address of the recipient
     /// @param amount The amount of the underlying asset to transfer
     function pay(address to, uint amount) external {
         if (!(markets[msg.sender].isListed)) {
             revert CallerNotLpToken();
         }
-        AquaVaultLogic.pay(to, amount);
+        CreditVaultLogic.pay(to, amount);
     }
 
     /** admin related functions */
@@ -128,13 +128,13 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     /// @notice Called by admin to set new aquaVaultSignatureCheck
     /// @param newSignatureCheck The address of the new aquaVaultSignatureCheck
     function setSignatureCheck(address newSignatureCheck) external onlyAdmin ensureNonZeroAddress(newSignatureCheck) {
-        aquaVaultSignatureCheck = AquaVaultSignatureCheck(newSignatureCheck);
+        aquaVaultSignatureCheck = CreditVaultSignatureCheck(newSignatureCheck);
     }
 
     /// @notice Called by admin to provide allowance to native pool to power the swap
     /// @param tokens The array of token and amount to approve
     function setAllowance(TokenAmountUint[] calldata tokens) external onlyAdmin {
-        AquaVaultLogic.setAllowance(tokens, nativePool);
+        CreditVaultLogic.setAllowance(tokens, nativePool);
     }
 
     /// @notice Called by admin to set the LP token reserve withdrawer
@@ -160,7 +160,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     }
 
     /// @notice Called by admin to set new signer
-    /// @dev The signer address is passed to AquaSignatureCheck to verify the signature of Aqua operator
+    /// @dev The signer address is passed to CreditSignatureCheck to verify the signature of Native Credit operator
     /// @param _signer The address of the new signer
     function setSigner(address _signer) external onlyAdmin ensureNonZeroAddress(_signer) {
         signer = _signer;
@@ -174,7 +174,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
 
     /// @notice Called by admin to support new market (new LP token)
     /// @param aquaLpToken The address of the new LP token
-    function supportMarket(AquaLpToken aquaLpToken) external onlyAdmin returns (uint) {
+    function supportMarket(CreditLpToken aquaLpToken) external onlyAdmin returns (uint) {
         address underlying = aquaLpToken.underlying();
         if (address(lpTokens[underlying]) != address(0) || aquaLpToken.aquaVault() != address(this))
             revert InvalidMarket();
@@ -195,7 +195,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
         if (msg.sender != epochUpdater) {
             revert CallerNotEpochUpdater();
         }
-        AquaVaultLogic.positionEpochUpdate(
+        CreditVaultLogic.positionEpochUpdate(
             traderPositionUpdate,
             lpTokenValueUpdate,
             positions,
@@ -208,7 +208,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     /// @notice a permissionless function to repay short positions for a trader
     /// @param repayments The array of token and amount to repay
     function repay(TokenAmountInt[] calldata repayments, address trader) external {
-        AquaVaultLogic.repay(repayments, positions, trader, lpTokens);
+        CreditVaultLogic.repay(repayments, positions, trader, lpTokens);
     }
 
     /// @notice Called by traders to settle the positions
@@ -222,9 +222,9 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     ) external onlyTraderOrSettler(request.trader) {
         aquaVaultSignatureCheck.verifySettleSignature(request, signature, signer);
 
-        AquaVaultLogic.settle(
+        CreditVaultLogic.settle(
             request.positionUpdates,
-            AquaVaultLogic.TraderCreditCheckParams({
+            CreditVaultLogic.TraderCreditCheckParams({
                 trader: request.trader,
                 recipient: request.recipient,
                 isWhitelisedTrader: isWhitelistTraders[request.trader],
@@ -244,7 +244,7 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     /// @param tokens The array of token and amount to add
     /// @param trader The address of the trader
     function addCollateral(TokenAmountUint[] calldata tokens, address trader) external {
-        AquaVaultLogic.addCollateral(tokens, aquaCollateral, markets, trader);
+        CreditVaultLogic.addCollateral(tokens, aquaCollateral, markets, trader);
     }
 
     /// @notice Called by traders to remove collateral
@@ -258,9 +258,9 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     ) external onlyTraderOrSettler(request.trader) {
         aquaVaultSignatureCheck.verifyRemoveCollateralSignature(request, signature, signer);
 
-        AquaVaultLogic.removeCollateral(
+        CreditVaultLogic.removeCollateral(
             request.tokens,
-            AquaVaultLogic.TraderCreditCheckParams({
+            CreditVaultLogic.TraderCreditCheckParams({
                 trader: request.trader,
                 recipient: request.recipient,
                 isWhitelisedTrader: isWhitelistTraders[request.trader],
@@ -281,10 +281,10 @@ contract AquaVault is Comptroller, INativeTreasuryV2, UUPSUpgradeable, IAquaVaul
     function liquidate(LiquidationRequest calldata request, bytes calldata signature) external onlyLiquidator {
         aquaVaultSignatureCheck.verifyLiquidationSignature(request, signature, signer);
 
-        AquaVaultLogic.liquidate(
+        CreditVaultLogic.liquidate(
             request.positionUpdates,
             request.claimCollaterals,
-            AquaVaultLogic.TraderCreditCheckParams({
+            CreditVaultLogic.TraderCreditCheckParams({
                 trader: request.trader,
                 recipient: request.recipient,
                 isWhitelisedTrader: isWhitelistTraders[request.trader],
