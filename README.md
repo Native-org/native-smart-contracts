@@ -14,7 +14,7 @@ Native is an infratrusture that supports different kinds of pricing and liquidit
 
 #### Swap
 
-1. Trader will give allowance to `NativeRouter` and talk to Native off-chain API to get the signed order. (example for calling API can be found here: https://docs.native.org/native-dev/native-v1/guide)
+1. Trader will give allowance to `NativeRouter` and talk to Native off-chain API to get the signed order. (example for calling API can be found here: https://docs.native.org/native-dev)
 2. Native off-chain router will check different liquidity sources, and decide the route by price, and return the signed order. For the hop using off-chain pricing (e.g. PMM pricing model), the off-chain router will get the qutoe from market maker and fill in the amountIn and amountOut in the order and sign it.
 3. Native employ a feature of widget fee. Authorized partners can register the fee recipient with Native (off-chain). And they can charge a fee from the traders for using their swap widget. The widgetFee signer hosted by Native will sign the order to ensure the authenticity of fee recipient and fee rate.
 4. With the signed order trader can call `NativeRouter` functions `exactInput`(for multi-hop) or `exactInputSingle`(for single hop) to exectue the transaction on-chain.
